@@ -1,7 +1,5 @@
 package kafka;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,16 +20,8 @@ public class Main {
 			clientSocket = serverSocket.accept();
 			System.out.println("connected: %s".formatted(clientSocket.getRemoteSocketAddress()));
 
-			clientSocket.getInputStream().read();
-
-			final var responseOutputStream = new ByteArrayOutputStream();
-			final var dataOutputStream = new DataOutputStream(responseOutputStream);
-
-			dataOutputStream.writeInt(0);
-			dataOutputStream.writeInt(7);
-
-			clientSocket.getOutputStream().write(responseOutputStream.toByteArray());
-			clientSocket.getOutputStream().flush();
+			final var client = new Client(clientSocket);
+			client.run();
 
 			clientSocket.close();
 		} catch (IOException e) {
