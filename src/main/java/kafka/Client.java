@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 
 import kafka.protocol.MessageReader;
+import kafka.protocol.ProtocolException;
 import kafka.protocol.io.DataInputStream;
 import kafka.protocol.io.DataOutputStream;
 import lombok.Getter;
@@ -26,11 +27,17 @@ public class Client {
 	public void run() {
 		final var reader = new MessageReader();
 
-		final var request = reader.next(this);
-		System.out.println(request);
+		try {
+			final var request = reader.next(this);
+			System.out.println(request);
 
-		outputStream.writeInt(4);
-		outputStream.writeInt(request.header().correlationId());
+			outputStream.writeInt(4);
+			outputStream.writeInt(request.header().correlationId());
+		} catch (ProtocolException exception) {
+			outputStream.writeInt(6);
+			outputStream.writeInt(exception.correlationId());
+			outputStream.writeShort(exception.code().value());
+		}
 	}
 
 }

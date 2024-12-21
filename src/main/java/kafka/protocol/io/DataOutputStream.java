@@ -20,6 +20,12 @@ public class DataOutputStream implements DataOutput, AutoCloseable {
 
 	@SneakyThrows
 	@Override
+	public void writeShort(short value) {
+		delegate.writeShort(value);
+	}
+
+	@SneakyThrows
+	@Override
 	public void writeInt(int value) {
 		delegate.writeInt(value);
 	}

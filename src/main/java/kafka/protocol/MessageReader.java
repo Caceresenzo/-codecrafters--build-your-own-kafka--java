@@ -49,12 +49,16 @@ public class MessageReader {
 		final var correlationId = reader.readSignedInt();
 		final var clientId = reader.readString();
 
+		final var header = new HeaderV2(requestApi, correlationId, Optional.of(clientId));
+		if (requestApi.version() < 0 || requestApi.version() > 4) {
+			throw new ProtocolException(ErrorCode.UNSUPPORTED_VERSION, correlationId);
+		}
+
 		final var deserializer = deserializers.get(requestApi);
 		if (deserializer == null) {
 			throw new IllegalStateException("unknown request api: %s".formatted(requestApi));
 		}
 
-		final var header = new HeaderV2(requestApi, correlationId, Optional.of(clientId));
 		final var body = deserializer.deserialize(reader);
 
 		return new Request<>(header, body);
