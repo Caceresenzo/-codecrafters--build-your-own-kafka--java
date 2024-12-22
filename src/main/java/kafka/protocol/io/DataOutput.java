@@ -54,7 +54,7 @@ public interface DataOutput {
 		writeBytes(bytes);
 	}
 
-	default <T> void writeCompactArray(List<T> items, BiConsumer<DataOutput, T> serializer) {
+	default <T> void writeCompactArray(List<T> items, BiConsumer<T, DataOutput> serializer) {
 		if (items == null) {
 			writeUnsignedVarint(0);
 			return;
@@ -63,8 +63,12 @@ public interface DataOutput {
 		writeUnsignedVarint(items.size() + 1l);
 
 		for (final var item : items) {
-			serializer.accept(this, item);
+			serializer.accept(item, this);
 		}
+	}
+
+	default void writeCompactIntArray(List<Integer> items) {
+		writeCompactArray(items, (value, output) -> output.writeInt(value));
 	}
 
 	default void skipEmptyTaggedFieldArray() {

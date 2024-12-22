@@ -10,6 +10,8 @@ public interface DataInput {
 
 	ByteBuffer readNBytes(int n);
 
+	byte peekByte();
+
 	byte readByte();
 
 	short readSignedShort();

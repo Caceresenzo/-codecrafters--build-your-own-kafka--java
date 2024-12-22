@@ -21,6 +21,15 @@ public class DataByteBuffer implements DataInput {
 		return ByteBuffer.wrap(bytes);
 	}
 
+	@Override
+	public byte peekByte() {
+		delegate.mark();
+		byte value = delegate.get();
+		delegate.reset();
+
+		return value;
+	}
+
 	@SneakyThrows
 	@Override
 	public byte readByte() {

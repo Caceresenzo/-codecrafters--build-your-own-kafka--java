@@ -20,6 +20,16 @@ public class DataInputStream implements DataInput {
 
 	@SneakyThrows
 	@Override
+	public byte peekByte() {
+		delegate.mark(1);
+		byte value = delegate.readByte();
+		delegate.reset();
+
+		return value;
+	}
+
+	@SneakyThrows
+	@Override
 	public byte readByte() {
 		return delegate.readByte();
 	}
