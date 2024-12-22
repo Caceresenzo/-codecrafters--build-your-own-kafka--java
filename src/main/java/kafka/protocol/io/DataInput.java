@@ -2,6 +2,9 @@ package kafka.protocol.io;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 public interface DataInput {
 
@@ -37,6 +40,23 @@ public interface DataInput {
 
 		final var bytes = readNBytes((int) length - 1);
 		return new String(bytes.array(), bytes.arrayOffset(), bytes.limit(), StandardCharsets.UTF_8);
+	}
+
+	default <T> List<T> readCompactArray(Function<DataInput, T> deserializer) {
+		var length = readUnsignedVarint();
+
+		if (length == 0) {
+			return null;
+		}
+
+		--length;
+		final var items = new ArrayList<T>((int) length);
+
+		for (var index = 0; index < length; ++index) {
+			items.add(deserializer.apply(this));
+		}
+
+		return items;
 	}
 
 	default void skipEmptyTaggedFieldArray() {

@@ -38,6 +38,12 @@ public class DataOutputStream implements DataOutput, AutoCloseable {
 
 	@SneakyThrows
 	@Override
+	public void writeLong(long value) {
+		delegate.writeLong(value);
+	}
+
+	@SneakyThrows
+	@Override
 	public void close() {
 		delegate.close();
 	}

@@ -6,6 +6,7 @@ import java.time.Duration;
 
 import kafka.message.apiversions.ApiVersionsRequest;
 import kafka.message.apiversions.ApiVersionsResponse;
+import kafka.message.describetopic.DescribeTopicPartitionsRequest;
 import kafka.protocol.ErrorCode;
 import kafka.protocol.ExchangeMapper;
 import kafka.protocol.ProtocolException;
@@ -73,6 +74,10 @@ public class Client implements Runnable {
 					.toList(),
 				Duration.ZERO
 			);
+
+			case DescribeTopicPartitionsRequest describeTopicPartitionsRequest -> {
+				throw new UnsupportedOperationException();
+			}
 
 			default -> null;
 		};

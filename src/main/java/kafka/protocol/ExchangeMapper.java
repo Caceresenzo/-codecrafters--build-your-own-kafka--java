@@ -11,6 +11,7 @@ import kafka.protocol.io.DataInput;
 import kafka.protocol.io.DataOutput;
 import kafka.protocol.io.DataOutputStream;
 import kafka.protocol.message.ApiVersionsV4Serdes;
+import kafka.protocol.message.DescribeTopicPartitionsV0Serdes;
 import kafka.protocol.serdes.MessageDeserializer;
 import kafka.protocol.serdes.MessageSerializer;
 import lombok.Getter;
@@ -24,10 +25,8 @@ public class ExchangeMapper {
 	private final Map<Class<? extends ResponseMessage>, MessageSerializer<?>> serializers = new HashMap<>();
 
 	public ExchangeMapper() {
-		final var apiVersionsV4 = new ApiVersionsV4Serdes();
-
-		addDeserializer(apiVersionsV4);
-		addSerializer(apiVersionsV4);
+		addSerdes(new ApiVersionsV4Serdes());
+		addSerdes(new DescribeTopicPartitionsV0Serdes());
 	}
 
 	private void addDeserializer(MessageDeserializer<?> deserializer) {
@@ -36,6 +35,11 @@ public class ExchangeMapper {
 
 	private void addSerializer(MessageSerializer<? extends ResponseMessage> serializer) {
 		serializers.put(serializer.type(), serializer);
+	}
+
+	private <T extends MessageDeserializer<?> & MessageSerializer<? extends ResponseMessage>> void addSerdes(T serdes) {
+		addDeserializer(serdes);
+		addSerializer(serdes);
 	}
 
 	public Request<?, ?> receiveRequest(DataInput input) {
