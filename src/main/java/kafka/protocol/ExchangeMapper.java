@@ -9,6 +9,7 @@ import java.util.function.Function;
 
 import kafka.message.apiversions.ApiVersionsRequestV4;
 import kafka.message.describetopic.DescribeTopicPartitionsRequestV0;
+import kafka.message.fetch.FetchRequestV16;
 import kafka.protocol.io.DataByteBuffer;
 import kafka.protocol.io.DataInput;
 import kafka.protocol.io.DataOutput;
@@ -23,6 +24,7 @@ public class ExchangeMapper {
 	private final Map<RequestApi, Function<DataInput, ? extends RequestBody>> deserializers = new HashMap<>();
 
 	public ExchangeMapper() {
+		deserializers.put(FetchRequestV16.API, FetchRequestV16::deserialize);
 		deserializers.put(ApiVersionsRequestV4.API, ApiVersionsRequestV4::deserialize);
 		deserializers.put(DescribeTopicPartitionsRequestV0.API, DescribeTopicPartitionsRequestV0::deserialize);
 	}
