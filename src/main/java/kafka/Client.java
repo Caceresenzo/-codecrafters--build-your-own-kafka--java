@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 
 @Getter
-public class Client {
+public class Client implements Runnable {
 
 	private final ExchangeMapper mapper;
 	private final Socket socket;
@@ -33,28 +33,34 @@ public class Client {
 	}
 
 	@SneakyThrows
+	@Override
 	public void run() {
-		while (socket.isConnected()) {
-			try {
-				final var request = mapper.receiveRequest(inputStream);
-				final var correlationId = request.header().correlationId();
-
-				final var response = handle(request);
-				if (response == null) {
-					throw new ProtocolException(ErrorCode.UNKNOWN_SERVER_ERROR, correlationId);
-				}
-
-				mapper.sendResponse(outputStream, correlationId, response);
-			} catch (ProtocolException exception) {
-				mapper.sendErrorResponse(outputStream, exception.correlationId(), exception.code());
-			} catch (Exception exception) {
-				System.err.println("%s: %s".formatted(socket.getLocalSocketAddress(), exception.getMessage()));
-				break;
+		try (socket) {
+			while (!socket.isClosed()) {
+				exchange();
 			}
+		} catch (Exception exception) {
+			System.err.println("%s: %s".formatted(socket.getLocalSocketAddress(), exception.getMessage()));
 		}
 	}
 
-	public ResponseMessage handle(Request<?, ?> request) {
+	private void exchange() {
+		try {
+			final var request = mapper.receiveRequest(inputStream);
+			final var correlationId = request.header().correlationId();
+
+			final var response = handle(request);
+			if (response == null) {
+				throw new ProtocolException(ErrorCode.UNKNOWN_SERVER_ERROR, correlationId);
+			}
+
+			mapper.sendResponse(outputStream, correlationId, response);
+		} catch (ProtocolException exception) {
+			mapper.sendErrorResponse(outputStream, exception.correlationId(), exception.code());
+		}
+	}
+
+	private ResponseMessage handle(Request<?, ?> request) {
 		return switch (request.body()) {
 			case ApiVersionsRequest apiVersionsRequest -> new ApiVersionsResponse(
 				mapper.deserializers().keySet()
