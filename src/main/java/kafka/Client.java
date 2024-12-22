@@ -17,6 +17,8 @@ import kafka.message.apiversions.ApiVersionsRequestV4;
 import kafka.message.apiversions.ApiVersionsResponseV4;
 import kafka.message.describetopic.DescribeTopicPartitionsRequestV0;
 import kafka.message.describetopic.DescribeTopicPartitionsResponseV0;
+import kafka.message.fetch.FetchRequestV16;
+import kafka.message.fetch.FetchResponseV16;
 import kafka.protocol.ErrorCode;
 import kafka.protocol.ExchangeMapper;
 import kafka.protocol.Header;
@@ -88,6 +90,11 @@ public class Client implements Runnable {
 			case DescribeTopicPartitionsRequestV0 describeTopicPartitionsRequest -> new Response(
 				new Header.V1(request.header().correlationId()),
 				handleDescribeTopicPartitionsRequest(describeTopicPartitionsRequest)
+			);
+
+			case FetchRequestV16 fetchRequest -> new Response(
+				new Header.V1(request.header().correlationId()),
+				handleFetchRequest(fetchRequest)
 			);
 
 			default -> null;
@@ -197,6 +204,15 @@ public class Client implements Runnable {
 			Duration.ZERO,
 			topicResponses,
 			null
+		);
+	}
+
+	private FetchResponseV16 handleFetchRequest(FetchRequestV16 request) {
+		return new FetchResponseV16(
+			Duration.ZERO,
+			ErrorCode.NONE,
+			0,
+			Collections.emptyList()
 		);
 	}
 

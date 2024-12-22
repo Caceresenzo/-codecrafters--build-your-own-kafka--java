@@ -36,7 +36,7 @@ public class ExchangeMapper {
 
 		final var header = Header.V2.deserialize(input);
 
-		final var deserializer = getDeserializer(header.requestApi());
+		final var deserializer = getDeserializer(header);
 		final var body = deserializer.apply(input);
 
 		return new Request(header, body);
@@ -54,10 +54,10 @@ public class ExchangeMapper {
 		output.writeBytes(bytes);
 	}
 
-	private Function<DataInput, ? extends RequestBody> getDeserializer(RequestApi requestApi) {
-		final var deserializer = deserializers.get(requestApi);
+	private Function<DataInput, ? extends RequestBody> getDeserializer(Header.V2 header) {
+		final var deserializer = deserializers.get(header.requestApi());
 		if (deserializer == null) {
-			throw new IllegalStateException("unknown request api: %s".formatted(requestApi));
+			throw new ProtocolException(ErrorCode.UNSUPPORTED_VERSION, header.correlationId());
 		}
 
 		return deserializer;

@@ -1,7 +1,5 @@
 package kafka.protocol;
 
-import java.util.Optional;
-
 import kafka.protocol.io.DataInput;
 import kafka.protocol.io.DataOutput;
 
@@ -38,7 +36,7 @@ public sealed interface Header {
 	public record V2(
 		RequestApi requestApi,
 		int correlationId,
-		Optional<String> clientId
+		String clientId
 	) implements Header {
 
 		@Override
@@ -57,12 +55,7 @@ public sealed interface Header {
 
 			input.skipEmptyTaggedFieldArray();
 
-			final var header = new V2(requestApi, correlationId, Optional.of(clientId));
-			if (requestApi.version() < 0 || requestApi.version() > 4) {
-				throw new ProtocolException(ErrorCode.UNSUPPORTED_VERSION, correlationId);
-			}
-
-			return header;
+			return new V2(requestApi, correlationId, clientId);
 		}
 
 	}
