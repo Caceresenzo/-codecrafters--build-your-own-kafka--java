@@ -14,6 +14,7 @@ import kafka.protocol.ResponseMessage;
 import kafka.protocol.io.DataInputStream;
 import kafka.protocol.io.DataOutputStream;
 import lombok.Getter;
+import lombok.SneakyThrows;
 
 @Getter
 public class Client {
@@ -31,20 +32,25 @@ public class Client {
 		this.outputStream = new DataOutputStream(socket.getOutputStream());
 	}
 
+	@SneakyThrows
 	public void run() {
+		while (socket.isConnected()) {
+			try {
+				final var request = mapper.receiveRequest(inputStream);
+				final var correlationId = request.header().correlationId();
 
-		try {
-			final var request = mapper.receiveRequest(inputStream);
-			final var correlationId = request.header().correlationId();
+				final var response = handle(request);
+				if (response == null) {
+					throw new ProtocolException(ErrorCode.UNKNOWN_SERVER_ERROR, correlationId);
+				}
 
-			final var response = handle(request);
-			if (response == null) {
-				throw new ProtocolException(ErrorCode.UNKNOWN_SERVER_ERROR, correlationId);
+				mapper.sendResponse(outputStream, correlationId, response);
+			} catch (ProtocolException exception) {
+				mapper.sendErrorResponse(outputStream, exception.correlationId(), exception.code());
+			} catch (Exception exception) {
+				System.err.println("%s: %s".formatted(socket.getLocalSocketAddress(), exception.getMessage()));
+				break;
 			}
-
-			mapper.sendResponse(outputStream, correlationId, response);
-		} catch (ProtocolException exception) {
-			mapper.sendErrorResponse(outputStream, exception.correlationId(), exception.code());
 		}
 	}
 
