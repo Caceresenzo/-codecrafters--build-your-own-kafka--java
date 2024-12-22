@@ -14,6 +14,12 @@ public class DataOutputStream implements DataOutput, AutoCloseable {
 
 	@SneakyThrows
 	@Override
+	public void writeBytes(byte[] bytes) {
+		delegate.write(bytes);
+	}
+
+	@SneakyThrows
+	@Override
 	public void writeByte(byte value) {
 		delegate.writeByte(value);
 	}

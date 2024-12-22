@@ -9,6 +9,8 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 public enum ErrorCode {
 
+	NONE(0),
+	UNKNOWN_SERVER_ERROR(-1),
 	UNSUPPORTED_VERSION(35);
 
 	private final short value;
