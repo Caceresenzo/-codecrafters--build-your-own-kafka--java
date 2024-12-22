@@ -30,7 +30,7 @@ public class DataInputStream implements DataInput {
 
 	@SneakyThrows
 	@Override
-	public byte readByte() {
+	public byte readSignedByte() {
 		return delegate.readByte();
 	}
 
@@ -44,6 +44,12 @@ public class DataInputStream implements DataInput {
 	@Override
 	public int readSignedInt() {
 		return delegate.readInt();
+	}
+
+	@SneakyThrows
+	@Override
+	public long readSignedLong() {
+		return delegate.readLong();
 	}
 
 }

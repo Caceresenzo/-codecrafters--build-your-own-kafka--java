@@ -49,7 +49,7 @@ public record DescribeTopicPartitionsResponseV0(
 			int leaderId,
 			int leaderEpoch,
 			List<Integer> replicaNodes,
-			List<Integer> isrNodes,
+			List<Integer> inSyncReplicasNodes,
 			List<Integer> eligibleLeaderReplicas,
 			List<Integer> lastKnownElr,
 			List<Integer> offlineReplicas
@@ -61,10 +61,12 @@ public record DescribeTopicPartitionsResponseV0(
 				output.writeInt(leaderId);
 				output.writeInt(leaderEpoch);
 				output.writeCompactIntArray(replicaNodes);
-				output.writeCompactIntArray(isrNodes);
+				output.writeCompactIntArray(inSyncReplicasNodes);
 				output.writeCompactIntArray(eligibleLeaderReplicas);
 				output.writeCompactIntArray(lastKnownElr);
 				output.writeCompactIntArray(offlineReplicas);
+
+				output.skipEmptyTaggedFieldArray();
 			}
 
 		}

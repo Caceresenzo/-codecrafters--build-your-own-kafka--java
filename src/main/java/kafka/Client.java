@@ -1,12 +1,17 @@
 package kafka;
 
 import java.io.EOFException;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import kafka.message.apiversions.ApiVersionsRequestV4;
 import kafka.message.apiversions.ApiVersionsResponseV4;
@@ -20,6 +25,8 @@ import kafka.protocol.Request;
 import kafka.protocol.Response;
 import kafka.protocol.io.DataInputStream;
 import kafka.protocol.io.DataOutputStream;
+import kafka.record.Batch;
+import kafka.record.Record;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
@@ -103,23 +110,92 @@ public class Client implements Runnable {
 		);
 	}
 
+	@SneakyThrows
 	private DescribeTopicPartitionsResponseV0 handleDescribeTopicPartitionsRequest(DescribeTopicPartitionsRequestV0 request) {
-		final var topics = new ArrayList<DescribeTopicPartitionsResponseV0.Topic>();
+		final var path = "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log";
+		try (final var fileInputStream = new FileInputStream(path)) {
+			System.out.println(HexFormat.ofDelimiter("").formatHex(fileInputStream.readAllBytes()));
+		}
 
-		for (final var topic : request.topics()) {
-			topics.add(new DescribeTopicPartitionsResponseV0.Topic(
-				ErrorCode.UNKNOWN_TOPIC,
-				topic.name(),
-				UUID.fromString("00000000-0000-0000-0000-000000000000"),
+		final var topicRecords = new ArrayList<Record.Topic>();
+		final var partitionRecords = new ArrayList<Record.Partition>();
+		try (final var fileInputStream = new FileInputStream(path)) {
+			final var input = new DataInputStream(fileInputStream);
+
+			while (fileInputStream.available() != 0) {
+				final var batch = Batch.deserialize(input);
+				System.out.println(batch);
+
+				for (final var record : batch.records()) {
+					if (record instanceof Record.Topic topic) {
+						topicRecords.add(topic);
+					} else if (record instanceof Record.Partition partition) {
+						partitionRecords.add(partition);
+					}
+				}
+			}
+		}
+
+		final var topicRecordPerName = topicRecords
+			.stream()
+			.collect(Collectors.toMap(
+				Record.Topic::name,
+				Function.identity()
+			));
+
+		final var partitionRecordsPerTopicId = partitionRecords
+			.stream()
+			.sorted(Comparator.comparing(Record.Partition::topicId))
+			.collect(Collectors.groupingBy(
+				Record.Partition::topicId
+			));
+
+		final var topicResponses = new ArrayList<DescribeTopicPartitionsResponseV0.Topic>();
+
+		for (final var topicRequest : request.topics()) {
+			final var topicRecord = topicRecordPerName.get(topicRequest.name());
+
+			if (topicRecord == null) {
+				topicResponses.add(new DescribeTopicPartitionsResponseV0.Topic(
+					ErrorCode.UNKNOWN_TOPIC,
+					topicRequest.name(),
+					UUID.fromString("00000000-0000-0000-0000-000000000000"),
+					false,
+					Collections.emptyList(),
+					0
+				));
+
+				continue;
+			}
+
+			final var partitionReponses = new ArrayList<DescribeTopicPartitionsResponseV0.Topic.Partition>();
+			for (final var partitionRecord : partitionRecordsPerTopicId.getOrDefault(topicRecord.id(), Collections.emptyList())) {
+				partitionReponses.add(new DescribeTopicPartitionsResponseV0.Topic.Partition(
+					ErrorCode.NONE,
+					partitionRecord.id(),
+					partitionRecord.leader(),
+					partitionRecord.leaderEpoch(),
+					partitionRecord.replicas(),
+					partitionRecord.inSyncReplicas(),
+					partitionRecord.addingReplicas(),
+					Collections.emptyList(),
+					partitionRecord.removingReplicas()
+				));
+			}
+
+			topicResponses.add(new DescribeTopicPartitionsResponseV0.Topic(
+				ErrorCode.NONE,
+				topicRequest.name(),
+				topicRecord.id(),
 				false,
-				Collections.emptyList(),
+				partitionReponses,
 				0
 			));
 		}
 
 		return new DescribeTopicPartitionsResponseV0(
 			Duration.ZERO,
-			topics,
+			topicResponses,
 			null
 		);
 	}

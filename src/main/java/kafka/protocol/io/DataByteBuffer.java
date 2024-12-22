@@ -32,7 +32,7 @@ public class DataByteBuffer implements DataInput {
 
 	@SneakyThrows
 	@Override
-	public byte readByte() {
+	public byte readSignedByte() {
 		return delegate.get();
 	}
 
@@ -46,6 +46,12 @@ public class DataByteBuffer implements DataInput {
 	@Override
 	public int readSignedInt() {
 		return delegate.getInt();
+	}
+
+	@SneakyThrows
+	@Override
+	public long readSignedLong() {
+		return delegate.getLong();
 	}
 
 }
