@@ -20,11 +20,14 @@ import lombok.SneakyThrows;
 
 public class Kafka {
 
+	private final String logsRoot;
 	private final Map<UUID, Record.Topic> topicPerId;
 	private final Map<String, Record.Topic> topicPerName;
 	private final Map<UUID, List<Record.Partition>> partitionsPerTopicId;
 
-	public Kafka(List<Topic> topics, List<Partition> records) {
+	public Kafka(String logsRoot, List<Topic> topics, List<Partition> records) {
+		this.logsRoot = logsRoot;
+
 		this.topicPerId = topics
 			.stream()
 			.collect(Collectors.toMap(
@@ -60,7 +63,18 @@ public class Kafka {
 	}
 
 	@SneakyThrows
-	public static Kafka load(String path) {
+	public byte[] getRecordData(String topicName, int partitionIndex) {
+		final var path = logsRoot + "%s-%s/00000000000000000000.log".formatted(topicName, partitionIndex);
+
+		try (final var fileInputStream = new FileInputStream(path)) {
+			return fileInputStream.readAllBytes();
+		}
+	}
+
+	@SneakyThrows
+	public static Kafka load(String logsRoot) {
+		final var path = logsRoot + "__cluster_metadata-0/00000000000000000000.log";
+
 		try (final var fileInputStream = new FileInputStream(path)) {
 			System.out.println(HexFormat.ofDelimiter("").formatHex(fileInputStream.readAllBytes()));
 		}
@@ -85,7 +99,7 @@ public class Kafka {
 			}
 		}
 
-		return new Kafka(topics, partitions);
+		return new Kafka(logsRoot, topics, partitions);
 	}
 
 }

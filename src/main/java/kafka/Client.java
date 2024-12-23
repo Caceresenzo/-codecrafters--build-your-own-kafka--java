@@ -191,20 +191,23 @@ public class Client implements Runnable {
 				continue;
 			}
 
+			final var partitionResponses = new ArrayList<FetchResponseV16.Response.Partition>();
+			for (final var partitionRecord : kafka.getPartitions(topicRecord.id())) {
+				partitionResponses.add(new FetchResponseV16.Response.Partition(
+					0,
+					ErrorCode.NONE,
+					0,
+					0,
+					0,
+					Collections.emptyList(),
+					0,
+					kafka.getRecordData(topicRecord.name(), partitionRecord.id())
+				));
+			}
+
 			responses.add(new FetchResponseV16.Response(
 				topicRequest.topicId(),
-				List.of(
-					new FetchResponseV16.Response.Partition(
-						0,
-						ErrorCode.NONE,
-						0,
-						0,
-						0,
-						Collections.emptyList(),
-						0,
-						new byte[0]
-					)
-				)
+				partitionResponses
 			));
 		}
 
