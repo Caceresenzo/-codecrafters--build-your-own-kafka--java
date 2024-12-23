@@ -11,6 +11,8 @@ public class Main {
 
 	@SneakyThrows
 	public static void main(String[] args) {
+		final var kafka = Kafka.load("/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log");
+
 		final var exchangeMapper = new ExchangeMapper();
 
 		System.out.println("listen: %d".formatted(PORT));
@@ -21,7 +23,7 @@ public class Main {
 				final var clientSocket = serverSocket.accept();
 				System.out.println("connected: %s".formatted(clientSocket.getRemoteSocketAddress()));
 
-				Thread.ofVirtual().start(new Client(exchangeMapper, clientSocket));
+				Thread.ofVirtual().start(new Client(kafka, exchangeMapper, clientSocket));
 			}
 		}
 	}

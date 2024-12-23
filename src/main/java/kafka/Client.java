@@ -1,18 +1,13 @@
 package kafka;
 
 import java.io.EOFException;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import kafka.message.apiversions.ApiVersionsRequestV4;
 import kafka.message.apiversions.ApiVersionsResponseV4;
@@ -28,20 +23,20 @@ import kafka.protocol.Request;
 import kafka.protocol.Response;
 import kafka.protocol.io.DataInputStream;
 import kafka.protocol.io.DataOutputStream;
-import kafka.record.Batch;
-import kafka.record.Record;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
 @Getter
 public class Client implements Runnable {
 
+	private final Kafka kafka;
 	private final ExchangeMapper mapper;
 	private final Socket socket;
 	private final DataInputStream inputStream;
 	private final DataOutputStream outputStream;
 
-	public Client(ExchangeMapper mapper, Socket socket) throws IOException {
+	public Client(Kafka kafka, ExchangeMapper mapper, Socket socket) throws IOException {
+		this.kafka = kafka;
 		this.mapper = mapper;
 		this.socket = socket;
 
@@ -120,48 +115,10 @@ public class Client implements Runnable {
 
 	@SneakyThrows
 	private DescribeTopicPartitionsResponseV0 handleDescribeTopicPartitionsRequest(DescribeTopicPartitionsRequestV0 request) {
-		final var path = "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log";
-		try (final var fileInputStream = new FileInputStream(path)) {
-			System.out.println(HexFormat.ofDelimiter("").formatHex(fileInputStream.readAllBytes()));
-		}
-
-		final var topicRecords = new ArrayList<Record.Topic>();
-		final var partitionRecords = new ArrayList<Record.Partition>();
-		try (final var fileInputStream = new FileInputStream(path)) {
-			final var input = new DataInputStream(fileInputStream);
-
-			while (fileInputStream.available() != 0) {
-				final var batch = Batch.deserialize(input);
-				System.out.println(batch);
-
-				for (final var record : batch.records()) {
-					if (record instanceof Record.Topic topic) {
-						topicRecords.add(topic);
-					} else if (record instanceof Record.Partition partition) {
-						partitionRecords.add(partition);
-					}
-				}
-			}
-		}
-
-		final var topicRecordPerName = topicRecords
-			.stream()
-			.collect(Collectors.toMap(
-				Record.Topic::name,
-				Function.identity()
-			));
-
-		final var partitionRecordsPerTopicId = partitionRecords
-			.stream()
-			.sorted(Comparator.comparing(Record.Partition::topicId))
-			.collect(Collectors.groupingBy(
-				Record.Partition::topicId
-			));
-
 		final var topicResponses = new ArrayList<DescribeTopicPartitionsResponseV0.Topic>();
 
 		for (final var topicRequest : request.topics()) {
-			final var topicRecord = topicRecordPerName.get(topicRequest.name());
+			final var topicRecord = kafka.getTopic(topicRequest.name());
 
 			if (topicRecord == null) {
 				topicResponses.add(new DescribeTopicPartitionsResponseV0.Topic(
@@ -177,7 +134,7 @@ public class Client implements Runnable {
 			}
 
 			final var partitionReponses = new ArrayList<DescribeTopicPartitionsResponseV0.Topic.Partition>();
-			for (final var partitionRecord : partitionRecordsPerTopicId.getOrDefault(topicRecord.id(), Collections.emptyList())) {
+			for (final var partitionRecord : kafka.getPartitions(topicRecord.id())) {
 				partitionReponses.add(new DescribeTopicPartitionsResponseV0.Topic.Partition(
 					ErrorCode.NONE,
 					partitionRecord.id(),
@@ -212,12 +169,34 @@ public class Client implements Runnable {
 		final var responses = new ArrayList<FetchResponseV16.Response>();
 
 		for (final var topicRequest : request.topics()) {
+			final var topicRecord = kafka.getTopic(topicRequest.topicId());
+
+			if (topicRecord == null) {
+				responses.add(new FetchResponseV16.Response(
+					topicRequest.topicId(),
+					List.of(
+						new FetchResponseV16.Response.Partition(
+							0,
+							ErrorCode.UNKNOWN_TOPIC_ID,
+							0,
+							0,
+							0,
+							Collections.emptyList(),
+							0,
+							new byte[0]
+						)
+					)
+				));
+
+				continue;
+			}
+
 			responses.add(new FetchResponseV16.Response(
 				topicRequest.topicId(),
 				List.of(
 					new FetchResponseV16.Response.Partition(
 						0,
-						ErrorCode.UNKNOWN_TOPIC_ID,
+						ErrorCode.NONE,
 						0,
 						0,
 						0,
