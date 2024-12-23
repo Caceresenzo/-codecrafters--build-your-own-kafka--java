@@ -192,16 +192,16 @@ public class Client implements Runnable {
 			}
 
 			final var partitionResponses = new ArrayList<FetchResponseV16.Response.Partition>();
-			for (final var partitionRecord : kafka.getPartitions(topicRecord.id())) {
+			for (final var partitionRequest : topicRequest.partitions()) {
 				partitionResponses.add(new FetchResponseV16.Response.Partition(
-					0,
+					partitionRequest.partition(),
 					ErrorCode.NONE,
 					0,
 					0,
 					0,
 					Collections.emptyList(),
 					0,
-					kafka.getRecordData(topicRecord.name(), partitionRecord.id())
+					kafka.getRecordData(topicRecord.name(), partitionRequest.partition())
 				));
 			}
 
