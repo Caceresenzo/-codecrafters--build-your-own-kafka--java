@@ -7,7 +7,7 @@ import java.util.function.BiConsumer;
 
 public interface DataOutput {
 
-	void writeBytes(byte[] bytes);
+	void writeRawBytes(byte[] bytes);
 
 	default void writeBoolean(boolean value) {
 		writeByte((byte) (value ? 1 : 0));
@@ -30,6 +30,16 @@ public interface DataOutput {
 		VarInt.writeLong(value, this);
 	}
 
+	default void writeCompactBytes(byte[] value) {
+		if (value == null) {
+			writeUnsignedVarint(0);
+			return;
+		}
+
+		writeUnsignedVarint(value.length + 1);
+		writeRawBytes(value);
+	}
+
 	default void writeString(String value) {
 		if (value == null) {
 			writeShort((short) -1);
@@ -39,7 +49,7 @@ public interface DataOutput {
 		final var bytes = value.getBytes(StandardCharsets.UTF_8);
 
 		writeShort((short) bytes.length);
-		writeBytes(bytes);
+		writeRawBytes(bytes);
 	}
 
 	default void writeCompactString(String value) {
@@ -51,7 +61,7 @@ public interface DataOutput {
 		final var bytes = value.getBytes(StandardCharsets.UTF_8);
 
 		writeUnsignedVarint(bytes.length + 1);
-		writeBytes(bytes);
+		writeRawBytes(bytes);
 	}
 
 	default <T> void writeCompactArray(List<T> items, BiConsumer<T, DataOutput> serializer) {

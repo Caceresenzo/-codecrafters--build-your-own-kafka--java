@@ -51,7 +51,7 @@ public class ExchangeMapper {
 		final var bytes = byteOutputStream.toByteArray();
 
 		output.writeInt(bytes.length);
-		output.writeBytes(bytes);
+		output.writeRawBytes(bytes);
 	}
 
 	private Function<DataInput, ? extends RequestBody> getDeserializer(Header.V2 header) {

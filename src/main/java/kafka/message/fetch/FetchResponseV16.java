@@ -61,7 +61,7 @@ public record FetchResponseV16(
 				output.writeLong(logStartOffset);
 				output.writeCompactArray(abortedTransactions, AbortedTransaction::serialize);
 				output.writeInt(preferredReadReplica);
-				output.writeBytes(records);
+				output.writeCompactBytes(records);
 
 				output.skipEmptyTaggedFieldArray();
 			}

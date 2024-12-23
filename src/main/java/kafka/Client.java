@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -208,11 +209,31 @@ public class Client implements Runnable {
 	}
 
 	private FetchResponseV16 handleFetchRequest(FetchRequestV16 request) {
+		final var responses = new ArrayList<FetchResponseV16.Response>();
+
+		for (final var topicRequest : request.topics()) {
+			responses.add(new FetchResponseV16.Response(
+				topicRequest.topicId(),
+				List.of(
+					new FetchResponseV16.Response.Partition(
+						0,
+						ErrorCode.UNKNOWN_TOPIC_ID,
+						0,
+						0,
+						0,
+						Collections.emptyList(),
+						0,
+						new byte[0]
+					)
+				)
+			));
+		}
+
 		return new FetchResponseV16(
 			Duration.ZERO,
 			ErrorCode.NONE,
-			0,
-			Collections.emptyList()
+			request.sessionId(),
+			responses
 		);
 	}
 
